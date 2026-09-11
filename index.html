@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="રામદૂત સ્ટોક મેનેજર">
+<title>રામદૂત સ્ટોક મેનેજર</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="site-header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="logo">ર</div>
+      <div class="brand-text">
+        <h1 id="shopName">રામદૂત સ્ટોક મેનેજર</h1>
+        <small>Ramdut Decorators • Offline Stock</small>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="dbBadge" class="db-badge" title="ડેટાબેઝ સિંક"></span>
+      <span id="verTag" class="ver-tag">v4.1</span>
+      <button class="icon-btn" onclick="openSettings()" aria-label="સેટિંગ્સ">⚙️</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== Main ===== -->
+<main>
+
+  <!-- Dashboard -->
+  <section id="home" class="view active">
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="stat-icon">📦</div><span>કુલ માપ</span><b id="sTotal">0</b></div>
+      <div class="stat-card green"><div class="stat-icon">🏭</div><span>ગોડાઉનમાં</span><b id="sWarehouse">0</b></div>
+      <div class="stat-card orange"><div class="stat-icon">🏗️</div><span>સાઇટ પર</span><b id="sSite">0</b></div>
+      <div class="stat-card red"><div class="stat-icon">⚠️</div><span>તૂટેલો</span><b id="sDamage">0</b></div>
+    </div>
+
+    <div class="value-card">
+      <span>કુલ માપની કિંમત</span>
+      <b id="sValue">₹0</b>
+    </div>
+
+    <div class="quick-actions">
+      <button class="qa send" onclick="openSend()"><span>🚚</span>સાઇટ મોકલો</button>
+      <button class="qa return" onclick="openReturn()"><span>↩️</span>પાછો લાવો</button>
+      <button class="qa damage" onclick="openDamage()"><span>⚠️</span>તૂટેલો</button>
+      <button class="qa add" onclick="openAdd()"><span>➕</span>નવો માપ</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>⚠️ ઓછો સ્ટોક</h3><button class="link" onclick="showV('stock')">જુઓ</button></div>
+      <div id="lowStock"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>🏗️ ચાલુ સાઇટ્સ</h3><button class="link" onclick="showV('sites')">જુઓ</button></div>
+      <div id="runningSites"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>🕐 તાજેતરની હિસ્ટરી</h3><button class="link" onclick="showV('history')">જુઓ</button></div>
+      <div id="recent"></div>
+    </div>
+  </section>
+
+  <!-- Stock / Godown -->
+  <section id="stock" class="view">
+    <div class="card">
+      <div class="card-head">
+        <div><h3>🏭 ગોડાઉન</h3><small class="muted">દરેક માપ એક જ વાર નાખો, પછી મોકલો / પાછા કરો</small></div>
+        <button class="btn primary sm" onclick="openAdd()">+ નવો</button>
+      </div>
+      <div class="search-box"><input id="search" placeholder="🔎 માપ શોધો..." oninput="renderStock(this.value)"></div>
+      <div class="filter-chips" id="catFilters"></div>
+    </div>
+    <div id="stockList"></div>
+  </section>
+
+  <!-- Sites -->
+  <section id="sites" class="view">
+    <div class="card">
+      <div class="card-head"><h3>🏢 સાઇટ્સ</h3></div>
+      <div class="filter-chips" id="siteFilters">
+        <button class="chip active" data-sf="all" onclick="setSiteFilter('all',this)">બધી</button>
+        <button class="chip" data-sf="running" onclick="setSiteFilter('running',this)">🟢 ચાલુ</button>
+        <button class="chip" data-sf="complete" onclick="setSiteFilter('complete',this)">✅ પૂર્ણ</button>
+      </div>
+      <div class="form-group">
+        <input id="siteName" placeholder="સાઇટ / ગ્રાહકનું નામ">
+        <input id="siteVenue" placeholder="સ્થળ / વિસ્તાર">
+        <input id="sitePhone" placeholder="ફોન નંબર (વૈકલ્પિક)" type="tel">
+        <button class="btn primary full" onclick="addSite()">➕ સાઇટ ઉમેરો</button>
+      </div>
+    </div>
+    <div id="siteList"></div>
+  </section>
+
+  <!-- History -->
+  <section id="history" class="view">
+    <div class="card">
+      <div class="card-head"><h3>📋 સંપૂર્ણ હિસ્ટરી</h3></div>
+      <div class="filter-chips" id="histFilters">
+        <button class="chip active" data-f="all" onclick="setHistFilter('all',this)">બધું</button>
+        <button class="chip" data-f="send" onclick="setHistFilter('send',this)">🚀 મોકલ્યો</button>
+        <button class="chip" data-f="return" onclick="setHistFilter('return',this)">↩️ પાછો</button>
+        <button class="chip" data-f="damage" onclick="setHistFilter('damage',this)">⚠️ તૂટેલો</button>
+        <button class="chip" data-f="add" onclick="setHistFilter('add',this)">➕ નવો</button>
+      </div>
+    </div>
+    <div id="historyList"></div>
+  </section>
+
+  <!-- Settings -->
+  <section id="settings" class="view">
+    <div class="card">
+      <div class="card-head"><h3>⚙️ સેટિંગ્સ</h3></div>
+      <div class="form-group">
+        <label>દુકાનનું નામ</label>
+        <input id="setShopName" placeholder="દુકાનનું નામ">
+        <button class="btn primary full" onclick="saveShopName()">સેવ કરો</button>
+      </div>
+      <hr>
+      <p class="muted">તમારો data ફક્ત આ device માં રહે છે. Backup લેવાનું ભૂલશો નહીં.</p>
+      <div class="btn-row">
+        <button class="btn green" onclick="backup()">💾 Backup લો</button>
+        <button class="btn blue" onclick="restore()">📥 Restore કરો</button>
+      </div>
+      <input type="file" id="restoreFile" accept=".json" class="hidden" onchange="doRestore(event)">
+      <hr>
+      <button class="btn danger full" onclick="resetData()">🗑️ બધો data delete કરો</button>
+    </div>
+    <div class="card about">
+      <h3>ℹ️ માહિતી</h3>
+      <p class="muted">રામદૂત સ્ટોક મેનેજર v4.0<br>Offline PWA • Data ફક્ત device માં</p>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Bottom Navigation ===== -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="home" onclick="showV('home',this)"><span>🏠</span>હોમ</button>
+  <button class="nav-btn" data-view="stock" onclick="showV('stock',this)"><span>🏭</span>માપ</button>
+  <button class="nav-btn" data-view="sites" onclick="showV('sites',this)"><span>🏢</span>સાઇટ્સ</button>
+  <button class="nav-btn" data-view="history" onclick="showV('history',this)"><span>📋</span>હિસ્ટરી</button>
+  <button class="nav-btn" data-view="settings" onclick="showV('settings',this)"><span>⚙️</span>સેટિંગ્સ</button>
+</nav>
+
+<!-- ===== Modal ===== -->
+<div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h2 id="modalTitle"></h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="બંધ કરો">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

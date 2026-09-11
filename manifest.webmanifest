@@ -1,0 +1,10 @@
+{
+  "name": "Ramdut Stock Manager",
+  "short_name": "Ramdut Stock",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f4fb",
+  "theme_color": "#4f46e5",
+  "description": "Offline stock management for Ramdut Decorators",
+  "lang": "gu"
+}
