@@ -267,6 +267,28 @@ main { max-width: 920px; margin: auto; padding: 14px; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
 .about { text-align: center; }
 
+/* ---------- Site Item Stock Info ---------- */
+.sit-stock-info {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.stock-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.stock-badge.godown {
+  background: #eef0ff;
+  color: var(--primary);
+}
+.stock-badge.site {
+  background: #e7f8f1;
+  color: var(--green);
+}
+
 /* ---------- Add More Quantity (વધારો) ---------- */
 .qty-breakdown {
   background: var(--primary-soft);

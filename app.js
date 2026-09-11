@@ -996,15 +996,20 @@ function renderSiteDetail(siteId) {
     rows = entries.map(([itemId, n]) => {
       const it = findItem(itemId);
       const nm = it ? esc(it.name) : '?' + itemId;
+      const godownQty = it ? (it.qty || 0) : 0;
       return `
       <div class="site-item-card">
         <div class="sit-top">
           <b>${nm}</b>
           <span class="sit-qty">${n}</span>
         </div>
+        <div class="sit-stock-info">
+          <span class="stock-badge godown">🏭 ગોડાઉન: ${godownQty}</span>
+          <span class="stock-badge site">🏗️ સાઇટ પર: ${n}</span>
+        </div>
         <div class="sit-actions">
+          <button class="btn blue" onclick="openSiteSendMore('${site.id}','${itemId}')">➕ વધારો</button>
           <button class="btn green" onclick="openSiteReturn('${site.id}','${itemId}')">↩️ પાછા</button>
-          <button class="btn blue" onclick="openSiteEditItem('${site.id}','${itemId}')">✏️ Edit</button>
           <button class="btn red" onclick="openSiteDamage('${site.id}','${itemId}')">⚠️ તૂટેલો</button>
         </div>
       </div>`;
@@ -1073,28 +1078,106 @@ function siteEditItemSave(siteId, itemId) {
   refresh();
 }
 
-/* Site-scoped return (partial qty from a specific site+item) */
+/* Site-scoped SEND MORE (add more from godown to site) */
+function openSiteSendMore(siteId, itemId) {
+  const site = findSite(siteId);
+  const it = findItem(itemId);
+  if (!site || !it) return;
+  const onSite = (site.items && site.items[itemId]) || 0;
+  const godownQty = it.qty || 0;
+  openModal(`➕ ${esc(it.name)} — સાઇટ પર વધારો`,
+    `<div class="form-group">
+      <div class="qty-breakdown">
+        <div class="qty-row"><span>🏭 ગોડાઉનમાં છે:</span><b>${godownQty}</b></div>
+        <div class="qty-row"><span>🏗️ સાઇટ પર છે:</span><b>${onSite}</b></div>
+      </div>
+      <label>કેટલા વધારે મોકલવા છે?</label>
+      <input id="smQty" type="number" min="1" max="${godownQty}" value="1" placeholder="0" oninput="updateSiteSendPreview()">
+      <div class="add-more-preview" id="siteSendPreview">
+        <span class="calc">સાઇટ: ${onSite} + 1 = <b>${onSite + 1}</b></span>
+        <span class="calc-note">ગોડાઉન: ${godownQty} − 1 = <b>${godownQty - 1}</b></span>
+      </div>
+      <button class="btn blue full" onclick="siteSendMoreSubmit('${siteId}','${itemId}')">➕ મોકલો</button>
+    </div>`);
+}
+
+function updateSiteSendPreview() {
+  const q = $('smQty');
+  if (!q) return;
+  const addQty = Math.max(0, parseInt(q.value || '0', 10));
+  const breakdown = document.querySelector('.qty-breakdown');
+  if (!breakdown) return;
+  const godownEl = breakdown.querySelector('.qty-row:first-child b');
+  const siteEl = breakdown.querySelector('.qty-row:nth-child(2) b');
+  const godownQty = godownEl ? parseInt(godownEl.textContent || '0', 10) : 0;
+  const siteQty = siteEl ? parseInt(siteEl.textContent || '0', 10) : 0;
+  const preview = document.getElementById('siteSendPreview');
+  if (preview) {
+    preview.innerHTML = `
+      <span class="calc">સાઇટ: ${siteQty} + ${addQty} = <b>${siteQty + addQty}</b></span>
+      <span class="calc-note">ગોડાઉન: ${godownQty} − ${addQty} = <b>${godownQty - addQty}</b></span>
+    `;
+  }
+}
+
+function siteSendMoreSubmit(siteId, itemId) {
+  const site = findSite(siteId);
+  const it = findItem(itemId);
+  if (!site || !it) return;
+  const onSite = (site.items && site.items[itemId]) || 0;
+  const godownQty = it.qty || 0;
+  const addQty = Math.max(1, parseInt($('smQty').value || '0', 10));
+  if (addQty <= 0) { toast('સંખ્યા લખો'); return; }
+  if (addQty > godownQty) { toast(`ગોડાઉનમાં ફક્ત ${godownQty} છે`); return; }
+  it.qty = godownQty - addQty;
+  site.items[itemId] = onSite + addQty;
+  saveItems(); saveSites();
+  addHistory('send', `${it.name} → ${site.name} (વધારો)`, `ગોડાઉન: ${godownQty} → ${it.qty}, સાઇટ: ${onSite} → ${site.items[itemId]}`);
+  toast(`${it.name}: સાઇટ પર +${addQty} ✅`);
+  if (!keepSitePopupOpen()) closeModal();
+  refresh();
+}
+
+/* Site-scoped return (partial qty from specific site+item) */
 function openSiteReturn(siteId, itemId) {
   const site = findSite(siteId);
   const it = findItem(itemId);
   if (!site || !it) return;
   const onSite = (site.items && site.items[itemId]) || 0;
+  const godownQty = it.qty || 0;
   openModal(`↩️ ${esc(it.name)} પાછા લાવો`,
     `<div class="form-group">
-      <p class="qty-note">સાઇટ <b>${esc(site.name)}</b> પર હાલ ${onSite} છે.</p>
-      <label>કેટલા પાછા લાવવા છે</label>
-      <input id="srQty" type="number" min="1" max="${onSite}" placeholder="0">
-      <div class="big-qty" id="srLeft"></div>
-      <p class="qty-note" id="srNote">બાકી પ્રાયુતા સાઇટ પર રહેશે</p>
+      <div class="qty-breakdown">
+        <div class="qty-row"><span>🏭 ગોડાઉનમાં છે:</span><b>${godownQty}</b></div>
+        <div class="qty-row"><span>🏗️ સાઇટ પર છે:</span><b>${onSite}</b></div>
+      </div>
+      <label>કેટલા પાછા લાવવા છે?</label>
+      <input id="srQty" type="number" min="1" max="${onSite}" value="${onSite}" placeholder="0" oninput="updateSiteReturnPreview()">
+      <div class="add-more-preview" id="siteReturnPreview">
+        <span class="calc">ગોડાઉન: ${godownQty} + ${onSite} = <b>${godownQty + onSite}</b></span>
+        <span class="calc-note">સાઇટ: ${onSite} − ${onSite} = <b>0</b></span>
+      </div>
       <button class="btn green full" onclick="siteReturnSubmit('${siteId}','${itemId}')">↩️ પાછા લાવો</button>
     </div>`);
+}
+
+function updateSiteReturnPreview() {
   const q = $('srQty');
-  q.oninput = () => {
-    const v = parseInt(q.value || '0', 10);
-    const left = Math.max(0, onSite - v);
-    const leftEl = $('srLeft');
-    if (leftEl) leftEl.textContent = left > 0 ? `${onSite} − ${v} = ${left} સાઇટ પર રહેશે` : 'બધા પાછા આવી જશે';
-  };
+  if (!q) return;
+  const returnQty = Math.max(0, parseInt(q.value || '0', 10));
+  const breakdown = document.querySelector('.qty-breakdown');
+  if (!breakdown) return;
+  const godownEl = breakdown.querySelector('.qty-row:first-child b');
+  const siteEl = breakdown.querySelector('.qty-row:nth-child(2) b');
+  const godownQty = godownEl ? parseInt(godownEl.textContent || '0', 10) : 0;
+  const siteQty = siteEl ? parseInt(siteEl.textContent || '0', 10) : 0;
+  const preview = document.getElementById('siteReturnPreview');
+  if (preview) {
+    preview.innerHTML = `
+      <span class="calc">ગોડાઉન: ${godownQty} + ${returnQty} = <b>${godownQty + returnQty}</b></span>
+      <span class="calc-note">સાઇટ: ${siteQty} − ${returnQty} = <b>${siteQty - returnQty}</b></span>
+    `;
+  }
 }
 
 function siteReturnSubmit(siteId, itemId) {
