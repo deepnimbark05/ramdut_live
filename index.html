@@ -37,14 +37,14 @@
   <!-- Dashboard -->
   <section id="home" class="view active">
     <div class="stats-grid">
-      <div class="stat-card blue"><div class="stat-icon">📦</div><span>કુલ માપ</span><b id="sTotal">0</b></div>
+      <div class="stat-card blue"><div class="stat-icon">📦</div><span>કુલ આઈટમ</span><b id="sTotal">0</b></div>
       <div class="stat-card green"><div class="stat-icon">🏭</div><span>ગોડાઉનમાં</span><b id="sWarehouse">0</b></div>
       <div class="stat-card orange"><div class="stat-icon">🏗️</div><span>સાઇટ પર</span><b id="sSite">0</b></div>
       <div class="stat-card red"><div class="stat-icon">⚠️</div><span>તૂટેલો</span><b id="sDamage">0</b></div>
     </div>
 
     <div class="value-card">
-      <span>કુલ માપની કિંમત</span>
+      <span>કુલ આઈટમની કિંમત</span>
       <b id="sValue">₹0</b>
     </div>
 
@@ -52,7 +52,7 @@
       <button class="qa send" onclick="openSend()"><span>🚚</span>સાઇટ મોકલો</button>
       <button class="qa return" onclick="openReturn()"><span>↩️</span>પાછો લાવો</button>
       <button class="qa damage" onclick="openDamage()"><span>⚠️</span>તૂટેલો</button>
-      <button class="qa add" onclick="openAdd()"><span>➕</span>નવો માપ</button>
+      <button class="qa add" onclick="openAdd()"><span>➕</span>નવો આઈટમ</button>
     </div>
 
     <div class="card">
@@ -75,10 +75,10 @@
   <section id="stock" class="view">
     <div class="card">
       <div class="card-head">
-        <div><h3>🏭 ગોડાઉન</h3><small class="muted">દરેક માપ એક જ વાર નાખો, પછી મોકલો / પાછા કરો</small></div>
+        <div><h3>🏭 ગોડાઉન</h3><small class="muted">દરેક આઈટમ એક જ વાર નાખો, પછી મોકલો / પાછા કરો</small></div>
         <button class="btn primary sm" onclick="openAdd()">+ નવો</button>
       </div>
-      <div class="search-box"><input id="search" placeholder="🔎 માપ શોધો..." oninput="renderStock(this.value)"></div>
+      <div class="search-box"><input id="search" placeholder="🔎 આઈટમ શોધો..." oninput="renderStock(this.value)"></div>
       <div class="filter-chips" id="catFilters"></div>
     </div>
     <div id="stockList"></div>
@@ -147,7 +147,7 @@
 <!-- ===== Bottom Navigation ===== -->
 <nav class="bottom-nav">
   <button class="nav-btn active" data-view="home" onclick="showV('home',this)"><span>🏠</span>હોમ</button>
-  <button class="nav-btn" data-view="stock" onclick="showV('stock',this)"><span>🏭</span>માપ</button>
+  <button class="nav-btn" data-view="stock" onclick="showV('stock',this)"><span>🏭</span>આઈટમ</button>
   <button class="nav-btn" data-view="sites" onclick="showV('sites',this)"><span>🏢</span>સાઇટ્સ</button>
   <button class="nav-btn" data-view="history" onclick="showV('history',this)"><span>📋</span>હિસ્ટરી</button>
   <button class="nav-btn" data-view="settings" onclick="showV('settings',this)"><span>⚙️</span>સેટિંગ્સ</button>
