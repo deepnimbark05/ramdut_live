@@ -334,8 +334,9 @@ function itemCard(it) {
     </div>
     <div class="item-actions">
       <button class="btn blue" onclick="openSend('${it.id}')">🚚 સાઇટ મોકલો</button>
+      <button class="btn green" onclick="openAddMore('${it.id}')">➕ વધારો</button>
       <button class="btn red" onclick="openDamage('${it.id}')">⚠️ તૂટેલો</button>
-      <button class="btn green" onclick="openEdit('${it.id}')">✏️</button>
+      <button class="btn blue" onclick="openEdit('${it.id}')">✏️</button>
       <button class="btn danger" onclick="deleteItem('${it.id}')">🗑️</button>
     </div>
   </div>`;
@@ -444,6 +445,66 @@ function editSave(id) {
   it.low = Math.max(0, parseInt($('edLow').value || '0', 10));
   saveItems();
   toast('ફેરફાર સેવ થયો');
+  closeModal();
+  refresh();
+}
+
+/* =========================================================== */
+/* ADD MORE QUANTITY TO EXISTING ITEM (વધારો)                  */
+/* =========================================================== */
+function openAddMore(id) {
+  const it = findItem(id);
+  if (!it) return;
+  const st = siteTotal(it.id);
+  const usu = itemUsable(it);
+  openModal(`➕ ${esc(it.name)} — વધારો`,
+    `<div class="form-group">
+      <div class="qty-breakdown">
+        <div class="qty-row"><span>ગોડાઉનમાં છે:</span><b>${it.qty || 0}</b></div>
+        <div class="qty-row"><span>સાઇટ પર છે:</span><b>${st}</b></div>
+        <div class="qty-row total"><span>કુલ:</span><b>${usu}</b></div>
+      </div>
+      <hr>
+      <label>કેટલા વધારવા છે?</label>
+      <input id="addMoreQty" type="number" min="1" value="1" placeholder="0" oninput="updateAddMorePreview()">
+      <div class="add-more-preview" id="addMorePreview">
+        <span class="calc">${it.qty || 0} + 1 = <b>${(it.qty || 0) + 1}</b></span>
+        <span class="calc-note">નવું ગોડાઉન કુલ: <b>${(it.qty || 0) + 1}</b></span>
+      </div>
+      <button class="btn green full" onclick="submitAddMore('${id}')">➕ વધારો</button>
+    </div>`);
+}
+
+function updateAddMorePreview() {
+  const it = document.querySelector('#addMoreQty');
+  if (!it) return;
+  const addQty = Math.max(0, parseInt(it.value || '0', 10));
+  // Find current item qty from the modal context
+  const modalTitle = document.querySelector('#modalTitle');
+  if (!modalTitle) return;
+  // Get the current godown qty from the breakdown
+  const breakdown = document.querySelector('.qty-breakdown .qty-row:first-child b');
+  const currentGodown = breakdown ? parseInt(breakdown.textContent || '0', 10) : 0;
+  const newTotal = currentGodown + addQty;
+  const preview = document.getElementById('addMorePreview');
+  if (preview) {
+    preview.innerHTML = `
+      <span class="calc">${currentGodown} + ${addQty} = <b>${newTotal}</b></span>
+      <span class="calc-note">નવું ગોડાઉન કુલ: <b>${newTotal}</b></span>
+    `;
+  }
+}
+
+function submitAddMore(id) {
+  const it = findItem(id);
+  if (!it) return;
+  const addQty = Math.max(1, parseInt($('addMoreQty').value || '0', 10));
+  if (addQty <= 0) { toast('સંખ્યા લખો'); return; }
+  const oldQty = it.qty || 0;
+  it.qty = oldQty + addQty;
+  saveItems();
+  addHistory('add', `${it.name} — વધારો`, `${oldQty} + ${addQty} = ${it.qty}`);
+  toast(`${it.name}: ${oldQty} + ${addQty} = ${it.qty} ✅`);
   closeModal();
   refresh();
 }
