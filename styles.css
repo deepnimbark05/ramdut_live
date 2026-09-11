@@ -267,6 +267,40 @@ main { max-width: 920px; margin: auto; padding: 14px; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
 .about { text-align: center; }
 
+/* ---------- Site Card Items ---------- */
+.site-card-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.site-card-items.empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+}
+.site-item-tag {
+  background: var(--primary-soft);
+  color: var(--primary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.site-item-tag b {
+  background: var(--primary);
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+.site-item-tag.more {
+  background: #fef3e2;
+  color: var(--orange);
+}
+
 /* ---------- Site Item Stock Info ---------- */
 .sit-stock-info {
   display: flex;

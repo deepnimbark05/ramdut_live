@@ -865,25 +865,127 @@ function renderSiteList() {
 
 function siteCard(s) {
   const running = s.status !== 'complete';
+  const total = siteTotal(s.id);
+  const entries = Object.entries(s.items || {}).filter(([, n]) => n > 0);
+
+  // Show items on site (max 4 items, then "and X more")
+  let itemsHtml = '';
+  if (entries.length > 0) {
+    const showItems = entries.slice(0, 4);
+    const remaining = entries.length - showItems.length;
+    itemsHtml = `
+      <div class="site-card-items">
+        ${showItems.map(([itemId, n]) => {
+          const it = findItem(itemId);
+          const nm = it ? esc(it.name) : '?' + itemId;
+          return `<span class="site-item-tag">${nm} <b>${n}</b></span>`;
+        }).join('')}
+        ${remaining > 0 ? `<span class="site-item-tag more">+${remaining} વધુ</span>` : ''}
+      </div>`;
+  } else {
+    itemsHtml = `<div class="site-card-items empty">કોઈ માલ નથી</div>`;
+  }
+
   return `
-  <div class="site-card" onclick="openSiteDetail('${s.id}')">
-    <div class="site-card-head">
+  <div class="site-card">
+    <div class="site-card-head" onclick="openSiteDetail('${s.id}')">
       <b>${esc(s.name)}</b>
-      <span class="site-count">${siteTotal(s.id)}</span>
+      <span class="site-count">${total}</span>
     </div>
-    <div class="site-info">
+    <div class="site-info" onclick="openSiteDetail('${s.id}')">
       <div class="muted">${esc(s.venue || '')}${s.phone ? ' • ' + esc(s.phone) : ''}</div>
-      <div class="muted">ક્લિક કરી ખોલો → આ સાઇટનો ખાતું</div>
     </div>
+    ${itemsHtml}
     <div class="site-status-row">
       <span class="site-badge ${running ? 'running' : 'done'}">${running ? '🟢 ચાલુ' : '✅ પૂર્ણ'}</span>
       <div class="site-actions">
-        <button class="btn sm ${running ? 'blue' : 'green'}" onclick="event.stopPropagation();toggleSiteStatus('${s.id}')">${running ? '✅ પૂર્ણ કરો' : '🔄 ચાલુ કરો'}</button>
+        <button class="btn green sm" onclick="event.stopPropagation();quickSendToSite('${s.id}')">➕ મોકલો</button>
+        <button class="btn sm ${running ? 'blue' : 'green'}" onclick="event.stopPropagation();toggleSiteStatus('${s.id}')">${running ? '✅ પૂર્ણ' : '🔄 ચાલુ'}</button>
         <button class="btn blue sm" onclick="event.stopPropagation();openSiteEdit('${s.id}')">✏️</button>
         <button class="btn danger sm" onclick="event.stopPropagation();deleteSite('${s.id}')">🗑️</button>
       </div>
     </div>
   </div>`;
+}
+
+/* Quick send items to site from card */
+function quickSendToSite(siteId) {
+  if (!items.length) { toast('પહેલા માલ ઉમેરો'); return; }
+  const site = findSite(siteId);
+  if (!site) return;
+
+  openModal(`🚚 ${esc(site.name)} — મોકલો`,
+    `<div class="form-group">
+      <label>કઈ સાઇટ પર</label>
+      <select id="qsSite" disabled>${siteOpts(siteId)}</select>
+      <p class="qty-note" id="qsSiteNote">➡️ મોકલાશે → <b>${esc(site.name)}</b></p>
+      <label>કેટલા મોકલવા છે — દરેક માલની સંખ્યા લખો</label>
+      <div id="qsList" class="ms-list"></div>
+      <div class="ms-total">કુલ મોકલાશે: <b id="qsTotal">0</b> પ્રાયુતા</div>
+      <button class="btn primary full" onclick="quickSendSubmit('${siteId}')">🚚 મોકલો</button>
+    </div>`);
+  renderQsList();
+}
+
+function renderQsList() {
+  const box = $('qsList');
+  if (!box) return;
+  box.innerHTML = items.map((it) => {
+    const st = it.qty || 0;
+    return `
+    <div class="ms-item">
+      <div>
+        <b>${esc(it.name)}</b>
+        <span class="muted">ગોડાઉનમાં: ${st}</span>
+      </div>
+      <input class="ms-qty" id="qsq_${it.id}" type="number" min="0" max="${st}" value="0" oninput="updateQsTotal()">
+    </div>`;
+  }).join('');
+  updateQsTotal();
+}
+
+function updateQsTotal() {
+  const t = $('qsTotal');
+  if (!t) return;
+  let total = 0;
+  items.forEach((it) => {
+    const inp = $('qsq_' + it.id);
+    if (inp) total += parseInt(inp.value || '0', 10);
+  });
+  t.textContent = total;
+}
+
+function quickSendSubmit(siteId) {
+  const site = findSite(siteId);
+  if (!site) { toast('સાઇટ પસંદ કરો'); return; }
+
+  const plan = [];
+  let any = false;
+  for (const it of items) {
+    const inp = $('qsq_' + it.id);
+    if (!inp) continue;
+    const q = parseInt(inp.value || '0', 10);
+    if (q <= 0) continue;
+    if (q > (it.qty || 0)) { toast(`${it.name}: ગોડાઉનમાં ફક્ત ${it.qty || 0} છે`); return; }
+    plan.push({ it, q });
+    any = true;
+  }
+  if (!any) { toast('કંઈ પણ સંખ્યા લખો'); return; }
+
+  if (!site.items) site.items = {};
+  let total = 0;
+  const lines = [];
+  for (const { it, q } of plan) {
+    it.qty = (it.qty || 0) - q;
+    site.items[it.id] = (site.items[it.id] || 0) + q;
+    total += q;
+    lines.push(`${it.name} ${q}`);
+  }
+  saveItems(); saveSites();
+  addHistory('send', `${plan.length} માલ → ${site.name}`, lines.join(', '));
+  toast(`${plan.length} માલ (કુલ ${total}) → ${site.name} ✅`);
+  closeModal();
+  refresh();
 }
 
 function addSite() {
