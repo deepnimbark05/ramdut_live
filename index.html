@@ -128,7 +128,7 @@
         <button class="btn primary full" onclick="saveShopName()">સેવ કરો</button>
       </div>
       <hr>
-      <p class="muted">તમારો data ફક્ત આ device માં રહે છે. Backup લેવાનું ભૂલશો નહીં.</p>
+      <p class="muted" id="dataNote">તમારો data ફક્ત આ device માં રહે છે. Backup લેવાનું ભૂલશો નહીં.</p>
       <div class="btn-row">
         <button class="btn green" onclick="backup()">💾 Backup લો</button>
         <button class="btn blue" onclick="restore()">📥 Restore કરો</button>
@@ -139,7 +139,7 @@
     </div>
     <div class="card about">
       <h3>ℹ️ માહિતી</h3>
-      <p class="muted">રામદૂત સ્ટોક મેનેજર v4.0<br>Offline PWA • Data ફક્ત device માં</p>
+      <p class="muted">રામદૂત સ્ટોક મેનેજર v4.0<br>Offline PWA • Free Cloud DB + device backup</p>
     </div>
   </section>
 </main>
@@ -167,6 +167,7 @@
 <!-- ===== Toast ===== -->
 <div id="toast" class="toast"></div>
 
+<script src="db-config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

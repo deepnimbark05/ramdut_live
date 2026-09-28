@@ -1,5 +1,5 @@
-﻿const CACHE = "ramdut-stock-v15";
-const ASSETS = ["./", "./index.html", "./app.js", "./styles.css", "./manifest.webmanifest"];
+﻿const CACHE = "ramdut-stock-v16";
+const ASSETS = ["./", "./index.html", "./app.js", "./db-config.js", "./styles.css", "./manifest.webmanifest"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

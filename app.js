@@ -11,27 +11,60 @@ const SITES_KEY = 'rmd_sites';
 const HIST_KEY = 'rmd_hist';
 const APP_V = 'v5.0';
 
-/* ---------- Database (server SQLite) sync ----------
-   SQLite on the server is the source of truth when online.
+/* ---------- Database sync (cloud or local) ----------
+   Two modes, chosen in db-config.js:
+   • Cloud — Supabase free-tier PostgreSQL, called directly from
+     the browser via its REST API, so the hosted website needs
+     no backend of its own.
+   • Local — GET/POST /api/state on _server.js (SQLite) when
+     db-config.js is not configured.
    localStorage stays as an instant offline cache.
    Every save is pushed to the DB (debounced); on startup we
    pull the DB state and adopt it. All network calls are
    best-effort and never block usage. */
 const DB_API = '/api/state';
+const DB_CFG = (typeof window !== 'undefined' && window.RAMDUT_DB) || {};
+const CLOUD = (DB_CFG.provider === 'supabase' && DB_CFG.url && DB_CFG.anonKey)
+  ? {
+      rest: String(DB_CFG.url).replace(/\/+$/, '') + '/rest/v1',
+      key: String(DB_CFG.anonKey),
+      store: String(DB_CFG.storeId || 'main'),
+    }
+  : null;
 let dbTimer = null;
 let dbOnline = false;
 
+function dbGetState() {
+  if (CLOUD) {
+    const url = CLOUD.rest + '/app_state?select=state&id=eq.' + encodeURIComponent(CLOUD.store) + '&limit=1';
+    return fetch(url, { headers: { apikey: CLOUD.key, Authorization: 'Bearer ' + CLOUD.key } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('cloud read ' + r.status))))
+      .then((rows) => ({ ok: true, data: (Array.isArray(rows) && rows[0] && rows[0].state) || null }));
+  }
+  return fetch(DB_API).then((r) => (r.ok ? r.json() : Promise.reject(new Error('local read ' + r.status))));
+}
+
+function dbSaveState(state) {
+  if (CLOUD) {
+    return fetch(CLOUD.rest + '/app_state', {
+      method: 'POST',
+      headers: {
+        apikey: CLOUD.key,
+        Authorization: 'Bearer ' + CLOUD.key,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify([{ id: CLOUD.store, state, updated_at: new Date().toISOString() }]),
+    }).then((r) => (r.ok ? { ok: true } : Promise.reject(new Error('cloud write ' + r.status))));
+  }
+  return fetch(DB_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) })
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error('local write ' + r.status))));
+}
+
 function dbPush() {
   if (!navigator.onLine) { dbOnline = false; renderDbBadge(); return; }
-  const body = JSON.stringify({
-    settings: shop,
-    items,
-    sites,
-    history,
-  });
-  fetch(DB_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
-    .then((r) => (r.ok ? r.json() : Promise.reject()))
-    .then((d) => { dbOnline = !!(d && d.ok); renderDbBadge(); })
+  dbSaveState({ settings: shop, items, sites, history })
+    .then(() => { dbOnline = true; renderDbBadge(); })
     .catch(() => { dbOnline = false; renderDbBadge(); });
 }
 
@@ -44,24 +77,27 @@ function renderDbBadge() {
   const b = $('dbBadge');
   if (!b) return;
   if (dbOnline) {
-    b.textContent = '🟢 DB';
+    b.textContent = CLOUD ? '🟢 Cloud' : '🟢 DB';
     b.classList.remove('off');
     b.classList.add('on');
-    b.title = 'ડેટાબેઝ સાથે જોડાયેલ — data સેવ થાય છે';
+    b.title = CLOUD
+      ? 'ક્લાઉડ ડેટાબેઝ (Supabase) સાથે જોડાયેલ — data cloud માં સેવ થાય છે'
+      : 'ડેટાબેઝ સાથે જોડાયેલ — data સેવ થાય છે';
   } else {
     b.textContent = '🟠 offline';
     b.classList.remove('on');
     b.classList.add('off');
-    b.title = 'ડેટાબેઝ નથી — માત્ર ડિવાઇસ પર સેવ';
+    b.title = CLOUD
+      ? 'ક્લાઉડ ડેટાબેઝ સાથે જોડાયું નથી — માત્ર ડિવાઇસ પર સેવ'
+      : 'ડેટાબેઝ નથી — માત્ર ડિવાઇસ પર સેવ';
   }
 }
 
 function dbPull() {
   if (!navigator.onLine) { renderDbBadge(); return Promise.resolve(false); }
-  return fetch(DB_API)
-    .then((r) => (r.ok ? r.json() : Promise.reject()))
+  return dbGetState()
     .then((d) => {
-      if (!d || !d.ok || !d.data) return false;
+      if (!d || !d.ok || !d.data) { dbOnline = true; renderDbBadge(); return false; }
       const { settings, items: si, sites: ss, history: hi } = d.data;
       if (Array.isArray(si)) items = si;
       if (Array.isArray(ss)) sites = ss;
@@ -171,6 +207,12 @@ function load() {
   if (sn) sn.value = shop.name;
   const vt = $('verTag');
   if (vt) vt.textContent = APP_V;
+  const dn = $('dataNote');
+  if (dn) {
+    dn.textContent = CLOUD
+      ? 'ડેટા free cloud database (Supabase) માં સેવ થાય છે — બધા device પર એક જ data.'
+      : 'તમારો data ફક્ત આ device માં રહે છે. Backup લેવાનું ભૂલશો નહીં.';
+  }
   refresh();
   // Online: adopt DB state (source of truth) and re-render.
   dbPull().then((changed) => { if (changed) { refresh(); } else { dbPush(); } });
